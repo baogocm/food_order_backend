@@ -1,0 +1,62 @@
+import Order from "../models/orderModel.js";
+import userModel from "../models/userModel.js";
+import Stripe from "stripe";
+
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+//placing an order
+const placeOrder = async (req, res) => {
+
+  const frontend_url = "http://localhost:5173";
+
+   try {
+    const newOrder = new Order({
+      userId: req.user._id,
+      items: req.body.cartItems,
+      amount: req.body.amount,
+      address: req.body.address,
+      payment: req.body.paymentMethod,
+      status: "Đang chờ",
+      date: new Date(),
+      payment: false,
+
+    });
+    await newOrder.save();
+    await userModel.findByIdAndUpdate(req.body.userId,{cartData: {}});
+
+    const line_items = req.body.cartItems.map((item)=>{
+      return {
+        price_data: {
+          currency: "vnd",
+          product_data: {
+            name: item.name,
+
+          },
+          unit_amount: item.price * 100,
+        },
+        quantity: item.quantity,
+      }
+    })
+    line_items.push({
+      price_data: {
+        currency: "vnd",
+        product_data: {
+          name: "Phí vận chuyển",
+        },
+        unit_amount: 2*100,
+      },
+      quantity: 1,
+    });
+    const session = await stripe.checkout.sessions.create({
+      line_items: line_items,
+      mode: "payment",
+      success_url: `${frontend_url}/verify?success=true&order_id=${newOrder._id}`,
+      cancel_url: `${frontend_url}/verify?success=false&order_id=${newOrder._id}`,
+    })
+    res.json({success: true, session_url: session.url});
+  } catch (error) {
+    res.json({success: false, message:"Error"});
+   }
+}
+
+export {placeOrder};
