@@ -15,14 +15,14 @@ const placeOrder = async (req, res) => {
       items: req.body.cartItems,
       amount: req.body.amount,
       address: req.body.address,
-      payment: req.body.paymentMethod,
       status: "Đang chờ",
       date: new Date(),
       payment: false,
-
     });
+    
     await newOrder.save();
-    await userModel.findByIdAndUpdate(req.body.userId,{cartData: {}});
+    // Cập nhật giỏ hàng người dùng thành rỗng sau khi đặt hàng
+    await userModel.findByIdAndUpdate(req.user._id, {cartData: {}});
 
     const line_items = req.body.cartItems.map((item)=>{
       return {
@@ -30,7 +30,6 @@ const placeOrder = async (req, res) => {
           currency: "vnd",
           product_data: {
             name: item.name,
-
           },
           unit_amount: item.price * 100,
         },
@@ -55,6 +54,7 @@ const placeOrder = async (req, res) => {
     })
     res.json({success: true, session_url: session.url});
   } catch (error) {
+    console.error("Lỗi đặt hàng:", error);
     res.json({success: false, message:"Error"});
    }
 }
