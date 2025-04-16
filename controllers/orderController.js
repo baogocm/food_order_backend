@@ -59,4 +59,33 @@ const placeOrder = async (req, res) => {
    }
 }
 
-export {placeOrder};
+// Cập nhật trạng thái đơn hàng
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId, status, payment } = req.body;
+    
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { status, payment },
+      { new: true }
+    );
+    
+    if (!updatedOrder) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+    
+    // Đảm bảo xóa giỏ hàng của người dùng
+    await userModel.findByIdAndUpdate(req.user._id, { cartData: {} });
+    
+    res.json({ 
+      success: true, 
+      message: "Cập nhật trạng thái đơn hàng thành công",
+      order: updatedOrder
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái đơn hàng:", error);
+    res.json({ success: false, message: "Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng" });
+  }
+};
+
+export {placeOrder, updateOrderStatus};

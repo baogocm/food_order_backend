@@ -48,4 +48,15 @@ const getCart = async (req, res) => {
     }
 }
 
-export {addToCart, removeFromCart, getCart};
+//clear cart
+const clearCart = async (req, res) => {
+    try {
+        await userModel.findByIdAndUpdate(req.body.userId, {cartData: {}});
+        res.json({success: true, message: "Xóa giỏ hàng thành công"});
+    } catch (error) {
+        console.error(error);
+        res.json({success: false, message: "Lỗi khi xóa giỏ hàng"});
+    }
+}
+
+export {addToCart, removeFromCart, getCart, clearCart};
