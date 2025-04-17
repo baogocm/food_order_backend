@@ -64,6 +64,13 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { orderId, status, payment } = req.body;
     
+    if (!orderId) {
+      return res.json({ success: false, message: "Vui lòng cung cấp ID đơn hàng" });
+    }
+    
+    console.log(`Đang cập nhật đơn hàng ${orderId} với trạng thái: ${status}, thanh toán: ${payment}`);
+    
+    // Tìm và cập nhật đơn hàng
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       { status, payment },
@@ -71,11 +78,18 @@ const updateOrderStatus = async (req, res) => {
     );
     
     if (!updatedOrder) {
+      console.log("Không tìm thấy đơn hàng:", orderId);
       return res.json({ success: false, message: "Không tìm thấy đơn hàng" });
     }
     
-    // Đảm bảo xóa giỏ hàng của người dùng
-    await userModel.findByIdAndUpdate(req.user._id, { cartData: {} });
+    console.log("Cập nhật đơn hàng thành công:", updatedOrder._id);
+    
+    // Nếu có thông tin người dùng, xóa giỏ hàng của họ
+    // Nhưng đối với yêu cầu từ admin, có thể không có thông tin người dùng (req.user)
+    if (req.user && req.user._id) {
+      console.log("Đang xóa giỏ hàng của người dùng:", req.user._id);
+      await userModel.findByIdAndUpdate(req.user._id, { cartData: {} });
+    }
     
     res.json({ 
       success: true, 
@@ -84,7 +98,7 @@ const updateOrderStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi cập nhật trạng thái đơn hàng:", error);
-    res.json({ success: false, message: "Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng" });
+    res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi cập nhật trạng thái đơn hàng" });
   }
 };
 

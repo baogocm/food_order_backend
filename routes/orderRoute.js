@@ -5,7 +5,7 @@ import {placeOrder, updateOrderStatus, userOrders, list_order} from "../controll
 const orderRouter = express.Router();
 
 orderRouter.post("/place", authMiddleware, placeOrder);
-orderRouter.post("/update-status", authMiddleware, updateOrderStatus);
+orderRouter.post("/update-status", updateOrderStatus);
 orderRouter.get("/user-orders", authMiddleware, userOrders);
 orderRouter.get("/list", list_order);
 
