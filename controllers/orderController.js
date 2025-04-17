@@ -123,149 +123,20 @@ const userOrders = async (req, res) => {
 //list order
 const list_order = async (req, res) => {
   try {
-    // Thêm CORS headers để cho phép truy cập từ bất kỳ nguồn nào
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    console.log("Nhận request cho danh sách đơn hàng:", {
-      query: req.query,
-      method: req.method,
-      path: req.path
-    });
-    
-    // Lấy tham số phân trang từ query nếu có
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
-    // Tạo các điều kiện tìm kiếm từ query
-    const searchQuery = {};
-    
-    // Thêm điều kiện tìm kiếm theo trạng thái nếu có
-    if (req.query.status) {
-      searchQuery.status = req.query.status;
-    }
-    
-    // Thêm điều kiện tìm kiếm theo thanh toán nếu có
-    if (req.query.payment === 'true') {
-      searchQuery.payment = true;
-    } else if (req.query.payment === 'false') {
-      searchQuery.payment = false;
-    }
-    
-    // Thêm điều kiện tìm kiếm theo ngày nếu có
-    if (req.query.startDate && req.query.endDate) {
-      searchQuery.date = {
-        $gte: new Date(req.query.startDate),
-        $lte: new Date(req.query.endDate)
-      };
-    }
-    
-    console.log("Đang thực hiện tìm kiếm với query:", searchQuery);
-    
-    // Đếm tổng số đơn hàng thỏa mãn điều kiện
-    const totalOrders = await Order.countDocuments(searchQuery);
-    console.log("Tổng số đơn hàng:", totalOrders);
-    
-    // Lấy danh sách đơn hàng
-    const orders = await Order.find(searchQuery)
+    // Lấy tất cả đơn hàng, sắp xếp theo thời gian giảm dần (mới nhất lên đầu)
+    const orders = await Order.find()
       .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit);
-      
-    console.log("Đã tìm thấy đơn hàng:", orders.length);
+      .populate('userId', 'name email'); // Lấy thêm thông tin người dùng
     
-    // Trả về kết quả dưới dạng Object chứa mảng trống nếu không có dữ liệu
-    const response = {
-      success: true,
-      orders: orders || [],
-      pagination: {
-        total: totalOrders,
-        page,
-        limit,
-        pages: Math.ceil(totalOrders / limit)
-      }
-    };
+    if (!orders || orders.length === 0) {
+      return res.json({ success: true, orders: [], message: "Không có đơn hàng nào" });
+    }
     
-    console.log("Response:", {
-      success: response.success,
-      ordersCount: response.orders.length,
-      pagination: response.pagination
-    });
-    
-    return res.status(200).json(response);
+    res.json({ success: true, orders });
   } catch (error) {
     console.error("Lỗi khi lấy danh sách đơn hàng:", error);
-    return res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi lấy danh sách đơn hàng", error: error.message });
+    res.json({ success: false, message: "Đã xảy ra lỗi khi lấy danh sách đơn hàng" });
   }
 };
 
-// Cập nhật đơn hàng từ admin (không cần đăng nhập)
-const update_order_admin = async (req, res) => {
-  try {
-    // Thêm CORS headers
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    const { orderId } = req.params;
-    const { status, payment, note } = req.body;
-    
-    console.log("Cập nhật đơn hàng:", {orderId, status, payment});
-    
-    // Tìm và cập nhật đơn hàng
-    const updateData = {};
-    if (status) updateData.status = status;
-    if (payment !== undefined) updateData.payment = payment;
-    if (note) updateData.note = note;
-    
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      updateData,
-      { new: true }
-    );
-    
-    if (!updatedOrder) {
-      console.log("Không tìm thấy đơn hàng:", orderId);
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
-    }
-    
-    console.log("Đã cập nhật đơn hàng:", updatedOrder._id);
-    
-    return res.status(200).json({
-      success: true,
-      message: "Cập nhật đơn hàng thành công",
-      order: updatedOrder
-    });
-  } catch (error) {
-    console.error("Lỗi khi cập nhật đơn hàng:", error);
-    return res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi cập nhật đơn hàng", error: error.message });
-  }
-};
-
-// Lấy chi tiết một đơn hàng
-const get_order_detail = async (req, res) => {
-  try {
-    // Thêm CORS headers
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    const { orderId } = req.params;
-    console.log("Lấy chi tiết đơn hàng:", orderId);
-    
-    const order = await Order.findById(orderId);
-    
-    if (!order) {
-      console.log("Không tìm thấy đơn hàng:", orderId);
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
-    }
-    
-    console.log("Đã tìm thấy đơn hàng:", order._id);
-    
-    return res.status(200).json({ success: true, order });
-  } catch (error) {
-    console.error("Lỗi khi lấy chi tiết đơn hàng:", error);
-    return res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi lấy chi tiết đơn hàng", error: error.message });
-  }
-};
-
-export {placeOrder, updateOrderStatus, userOrders, list_order, update_order_admin, get_order_detail};
+export {placeOrder, updateOrderStatus, userOrders, list_order};
