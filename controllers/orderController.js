@@ -91,12 +91,26 @@ const updateOrderStatus = async (req, res) => {
 //order's user for frontend
 const userOrders = async (req, res) => {
   try {
+    console.log("User ID:", req.user._id);
+    
     // Tìm tất cả đơn hàng của người dùng, sắp xếp theo thời gian giảm dần (mới nhất lên đầu)
     const orders = await Order.find({ userId: req.user._id })
       .sort({ date: -1 });
     
+    console.log("Đơn hàng tìm thấy:", orders.length);
+    
     if (!orders || orders.length === 0) {
       return res.json({ success: true, orders: [], message: "Bạn chưa có đơn hàng nào" });
+    }
+    
+    // Log một số thông tin về đơn hàng đầu tiên để debug
+    if (orders.length > 0) {
+      console.log("Mẫu đơn hàng:", {
+        id: orders[0]._id,
+        items: orders[0].items,
+        hasItems: Array.isArray(orders[0].items),
+        itemsLength: Array.isArray(orders[0].items) ? orders[0].items.length : 0
+      });
     }
     
     res.json({ success: true, orders });
