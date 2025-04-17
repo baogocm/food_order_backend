@@ -88,4 +88,22 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
-export {placeOrder, updateOrderStatus};
+//order's user for frontend
+const userOrders = async (req, res) => {
+  try {
+    // Tìm tất cả đơn hàng của người dùng, sắp xếp theo thời gian giảm dần (mới nhất lên đầu)
+    const orders = await Order.find({ userId: req.user._id })
+      .sort({ date: -1 });
+    
+    if (!orders || orders.length === 0) {
+      return res.json({ success: true, orders: [], message: "Bạn chưa có đơn hàng nào" });
+    }
+    
+    res.json({ success: true, orders });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách đơn hàng:", error);
+    res.json({ success: false, message: "Đã xảy ra lỗi khi lấy danh sách đơn hàng" });
+  }
+};
+
+export {placeOrder, updateOrderStatus, userOrders};
