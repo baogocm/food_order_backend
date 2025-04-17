@@ -102,6 +102,38 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+// Xóa đơn hàng
+const deleteOrder = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: "Vui lòng cung cấp ID đơn hàng" });
+    }
+    
+    console.log(`Đang xóa đơn hàng ${orderId}`);
+    
+    // Tìm và xóa đơn hàng
+    const deletedOrder = await Order.findByIdAndDelete(orderId);
+    
+    if (!deletedOrder) {
+      console.log("Không tìm thấy đơn hàng:", orderId);
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+    
+    console.log("Xóa đơn hàng thành công:", orderId);
+    
+    res.json({ 
+      success: true, 
+      message: "Xóa đơn hàng thành công",
+      orderId: orderId
+    });
+  } catch (error) {
+    console.error("Lỗi khi xóa đơn hàng:", error);
+    res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi xóa đơn hàng" });
+  }
+};
+
 //order's user for frontend
 const userOrders = async (req, res) => {
   try {
@@ -156,4 +188,4 @@ const list_order = async (req, res) => {
   }
 };
 
-export {placeOrder, updateOrderStatus, userOrders, list_order};
+export {placeOrder, updateOrderStatus, deleteOrder, userOrders, list_order};
