@@ -120,4 +120,113 @@ const userOrders = async (req, res) => {
   }
 };
 
-export {placeOrder, updateOrderStatus, userOrders};
+//list order
+const list_order = async (req, res) => {
+  try {
+    // Lấy tham số phân trang từ query nếu có
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Tạo các điều kiện tìm kiếm từ query
+    const searchQuery = {};
+    
+    // Thêm điều kiện tìm kiếm theo trạng thái nếu có
+    if (req.query.status) {
+      searchQuery.status = req.query.status;
+    }
+    
+    // Thêm điều kiện tìm kiếm theo thanh toán nếu có
+    if (req.query.payment === 'true') {
+      searchQuery.payment = true;
+    } else if (req.query.payment === 'false') {
+      searchQuery.payment = false;
+    }
+    
+    // Thêm điều kiện tìm kiếm theo ngày nếu có
+    if (req.query.startDate && req.query.endDate) {
+      searchQuery.date = {
+        $gte: new Date(req.query.startDate),
+        $lte: new Date(req.query.endDate)
+      };
+    }
+    
+    // Đếm tổng số đơn hàng thỏa mãn điều kiện
+    const totalOrders = await Order.countDocuments(searchQuery);
+    
+    // Lấy danh sách đơn hàng
+    const orders = await Order.find(searchQuery)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('userId', 'name email'); // Lấy thêm thông tin người dùng
+    
+    res.json({
+      success: true,
+      orders,
+      pagination: {
+        total: totalOrders,
+        page,
+        limit,
+        pages: Math.ceil(totalOrders / limit)
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách đơn hàng:", error);
+    res.json({ success: false, message: "Đã xảy ra lỗi khi lấy danh sách đơn hàng" });
+  }
+};
+
+// Cập nhật đơn hàng từ admin (không cần đăng nhập)
+const update_order_admin = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status, payment, note } = req.body;
+    
+    // Tìm và cập nhật đơn hàng
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (payment !== undefined) updateData.payment = payment;
+    if (note) updateData.note = note;
+    
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      updateData,
+      { new: true }
+    );
+    
+    if (!updatedOrder) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+    
+    res.json({
+      success: true,
+      message: "Cập nhật đơn hàng thành công",
+      order: updatedOrder
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật đơn hàng:", error);
+    res.json({ success: false, message: "Đã xảy ra lỗi khi cập nhật đơn hàng" });
+  }
+};
+
+// Lấy chi tiết một đơn hàng
+const get_order_detail = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await Order.findById(orderId)
+      .populate('userId', 'name email');
+    
+    if (!order) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+    
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error("Lỗi khi lấy chi tiết đơn hàng:", error);
+    res.json({ success: false, message: "Đã xảy ra lỗi khi lấy chi tiết đơn hàng" });
+  }
+};
+
+export {placeOrder, updateOrderStatus, userOrders, list_order, update_order_admin, get_order_detail};
