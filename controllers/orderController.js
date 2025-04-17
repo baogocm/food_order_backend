@@ -123,10 +123,13 @@ const userOrders = async (req, res) => {
 //list order
 const list_order = async (req, res) => {
   try {
+    console.log("Đang lấy tất cả đơn hàng...");
+    
     // Lấy tất cả đơn hàng, sắp xếp theo thời gian giảm dần (mới nhất lên đầu)
     const orders = await Order.find()
-      .sort({ date: -1 })
-      .populate('userId', 'name email'); // Lấy thêm thông tin người dùng
+      .sort({ date: -1 });
+    
+    console.log("Tổng số đơn hàng tìm thấy:", orders.length);
     
     if (!orders || orders.length === 0) {
       return res.json({ success: true, orders: [], message: "Không có đơn hàng nào" });
@@ -135,7 +138,7 @@ const list_order = async (req, res) => {
     res.json({ success: true, orders });
   } catch (error) {
     console.error("Lỗi khi lấy danh sách đơn hàng:", error);
-    res.json({ success: false, message: "Đã xảy ra lỗi khi lấy danh sách đơn hàng" });
+    res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi lấy danh sách đơn hàng" });
   }
 };
 
